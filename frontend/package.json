@@ -9,10 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.6.0",
+    "@types/lodash": "^4.17.12",
     "frontend": ".",
+    "lodash": "^4.17.21",
     "next": "14.2.15",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "socket.io-client": "^4.8.0"
   },
   "devDependencies": {
     "typescript": "^5",
