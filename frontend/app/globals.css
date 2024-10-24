@@ -2,3 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+.cursor-user1 { background-color: #ff0000; }
+.cursor-user2 { background-color: #00ff00; }
+.cursor-user3 { background-color: #0000ff; }
+.cursor-user4 { background-color: #ffff00; }
+.cursor-user5 { background-color: #ff00ff; }

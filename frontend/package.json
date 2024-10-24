@@ -9,8 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@headlessui/react": "^2.1.10",
+    "@heroicons/react": "^2.1.5",
     "@monaco-editor/react": "^4.6.0",
     "@types/lodash": "^4.17.12",
+    "framer-motion": "^11.11.9",
     "frontend": ".",
     "lodash": "^4.17.21",
     "next": "14.2.15",
