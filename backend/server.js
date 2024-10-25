@@ -18,7 +18,9 @@ const io = new socket_io_1.Server(server, {
         methods: ["GET", "POST"]
     }
 });
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({
+    origin: process.env.CORS_URL
+}));
 const rooms = new Map();
 io.on('connection', (socket) => {
     console.log('New client connected', socket.id);

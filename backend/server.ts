@@ -15,7 +15,10 @@ const io = new Server(server, {
   }
 });
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_URL
+  
+}));
 
 interface Room {
   code: string;
