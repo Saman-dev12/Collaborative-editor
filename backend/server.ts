@@ -84,7 +84,6 @@ io.on('connection', (socket: Socket) => {
       const room = rooms.get(roomId)!;
       room.users.delete(socket.id);
       socket.leave(roomId);
-      socket.to(roomId).emit('userDisconnected', socket.id);
       if (room.users.size === 0) {
         rooms.delete(roomId);
         console.log(`Room ${roomId} has been deleted.`);

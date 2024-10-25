@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useSocket } from '@/lib/useSocket'
+import { toast } from 'sonner'
 
 export default function Home() {
   const [roomId, setRoomId] = useState('')
@@ -29,16 +30,18 @@ export default function Home() {
 
     const handleRoomCreated = (newRoomId: string) => {
       console.log('Room created:', newRoomId)
+      toast.success('Room created successfully')
       router.push(`/room/${newRoomId}`)
     }
 
     const handleRoomJoined = (joinedRoomId: string) => {
       console.log('Room joined:', joinedRoomId)
+      toast.success('Room joined successfully')
       router.push(`/room/${joinedRoomId}`)
     }
 
     const handleRoomError = (error: string) => {
-      alert(error)
+      toast.error(error)
     }
 
     socket.on('roomCreated', handleRoomCreated)
