@@ -16,10 +16,10 @@ const corsOptions = {
   credentials: true
 };
 
-// Apply CORS to Express and Socket.io
-app.use(cors(corsOptions));
 
-const io = new Server(server);
+const io = new Server(server, {
+  cors: corsOptions
+});
 
 // Define the Room interface
 interface Room {
