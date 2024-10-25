@@ -1,97 +1,86 @@
-"use client";
-import { useSocket } from "@/lib/useSocket"; // Assuming you have a useSocket hook to initialize socket.io client
-import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+'use client'
 
-function Room() {
-  const [roomId, setRoomId] = useState(""); 
-  const socket = useSocket(); 
-  const router = useRouter();
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useSocket } from '@/lib/useSocket'
 
+export default function Home() {
+  const [roomId, setRoomId] = useState('')
+  const socket = useSocket()
+  const router = useRouter()
 
   const handleCreateRoom = () => {
-    socket.emit("createRoom");
-    console.log("Creating room...");
-  };
-
-
-  useEffect(() => {
-    if (socket) {
-      socket.on("roomCreated", (newRoomId: string) => {
-        console.log("Room created:", newRoomId);
-        setRoomId(newRoomId); 
-        router.push(`/room/${newRoomId}`);
-      });
-
-      
-      socket.on("roomJoined", (joinedRoomId: string) => {
-        console.log("Room joined:", joinedRoomId);
-        setRoomId(joinedRoomId);
-        router.push(`/room/${joinedRoomId}`); 
-      });
-    }
-
-    return () => {
-      if (socket) {
-        socket.off("roomCreated");
-        socket.off("roomJoined");
-      }
-    };
-  }, [socket, router]);
+    socket.emit('createRoom')
+  }
 
   const handleJoinRoom = () => {
     if (roomId.trim()) {
-      socket.emit("joinRoom", roomId); // Send the roomId to join
-      console.log("Joining room:", roomId);
+      socket.emit('joinRoom', roomId)
     } else {
-      alert("Please enter a valid room ID");
+      alert('Please enter a valid room ID')
     }
-  };
+  }
+
+  useEffect(() => {
+    if (!socket) return
+
+    const handleRoomCreated = (newRoomId: string) => {
+      console.log('Room created:', newRoomId)
+      router.push(`/room/${newRoomId}`)
+    }
+
+    const handleRoomJoined = (joinedRoomId: string) => {
+      console.log('Room joined:', joinedRoomId)
+      router.push(`/room/${joinedRoomId}`)
+    }
+
+    const handleRoomError = (error: string) => {
+      alert(error)
+    }
+
+    socket.on('roomCreated', handleRoomCreated)
+    socket.on('roomJoined', handleRoomJoined)
+    socket.on('roomError', handleRoomError)
+
+    return () => {
+      socket.off('roomCreated', handleRoomCreated)
+      socket.off('roomJoined', handleRoomJoined)
+      socket.off('roomError', handleRoomError)
+    }
+  }, [socket, router])
 
   return (
-    <div>
-      {/* Rooms Section */}
-      <section id="rooms" className="py-20">
-        <div className="container mx-auto px-6">
-          <h2 className="text-4xl font-bold text-center mb-12">
-            Create or Join a Room
-          </h2>
-          <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="md:flex">
-              <div className="md:flex-1 p-8 border-r border-gray-200">
-                <h3 className="text-2xl font-semibold mb-4">Create a New Room</h3>
-                <p className="text-gray-600 mb-6">
-                  Start a new collaborative session and invite your team members.
-                </p>
-                <button
-                  onClick={handleCreateRoom}
-                  className="w-full bg-blue-600 text-white px-6 py-3 rounded-full text-lg hover:bg-blue-700 transition duration-300 shadow-md"
-                >
-                  Create Room
-                </button>
-              </div>
-              <div className="md:flex-1 p-8">
-                <h3 className="text-2xl font-semibold mb-4">Join Existing Room</h3>
-                <input
-                  type="text"
-                  placeholder="Enter Room ID"
-                  value={roomId}
-                  onChange={(e) => setRoomId(e.target.value)}
-                  className="w-full px-4 py-2 mb-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  onClick={handleJoinRoom}
-                  className="w-full bg-green-600 text-white px-6 py-3 rounded-full text-lg hover:bg-green-700 transition duration-300 shadow-md"
-                >
-                  Join Room
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
+    <main className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold text-center mb-8">Collaborative Code Editor</h1>
+      <div className="grid md:grid-cols-2 gap-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Create a New Room</CardTitle>
+            <CardDescription>Start a new collaborative coding session</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={handleCreateRoom} className="w-full">Create Room</Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Join Existing Room</CardTitle>
+            <CardDescription>Enter a room ID to join an existing session</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Input
+              type="text"
+              placeholder="Enter Room ID"
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value)}
+            />
+            <Button onClick={handleJoinRoom} className="w-full">Join Room</Button>
+          </CardContent>
+        </Card>
+      </div>
+    </main>
+  )
 }
-
-export default Room;
