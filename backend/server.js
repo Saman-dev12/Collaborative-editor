@@ -14,7 +14,7 @@ const app = (0, express_1.default)();
 const server = (0, http_1.createServer)(app);
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: "http://localhost:3000",
+        origin: process.env.CORS_URL,
         methods: ["GET", "POST"]
     }
 });
@@ -105,6 +105,12 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log('Client disconnected', socket.id);
     });
+});
+app.get('/', (req, res) => {
+    res.send('Hello World!');
+});
+app.get('/health', (req, res) => {
+    res.json({ ok: 'OK' });
 });
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

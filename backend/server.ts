@@ -10,7 +10,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: process.env.CORS_URL,
     methods: ["GET", "POST"]
   }
 });
@@ -115,6 +115,14 @@ io.on('connection', (socket: Socket) => {
   socket.on('disconnect', () => {
     console.log('Client disconnected', socket.id);
   });
+});
+
+app.get('/', (req, res) => {
+  res.send('Hello World!');
+});
+
+app.get('/health', (req, res) => {
+  res.json({ok:'OK'});
 });
 
 const PORT = process.env.PORT || 8000;
