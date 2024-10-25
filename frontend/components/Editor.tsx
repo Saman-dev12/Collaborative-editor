@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { Editor } from '@monaco-editor/react'
 import { useSocket } from '@/lib/useSocket'
 import { debounce } from 'lodash'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Copy, LogOut } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 const languages = [
   { value: 'javascript', label: 'JavaScript' },
@@ -24,6 +25,7 @@ export default function Room({roomId}:{roomId:string}) {
   const [isConnected, setIsConnected] = useState(false)
   const [language, setLanguage] = useState('javascript')
   const socket = useSocket()
+  const router = useRouter()
 
   useEffect(() => {
     if (!socket || !roomId) return
@@ -44,32 +46,52 @@ export default function Room({roomId}:{roomId:string}) {
       setCode(newCode)
     }
 
+    const handleLanguageUpdate = (language:string) => {
+      console.log('Language update received', language)
+      setLanguage(language)
+    }
+
     const handleRoomJoined = (joinedRoomId: string) => {
       console.log('Joined room:', joinedRoomId)
+      // Optionally, I can perform additional actions when the room is joined
+      // For example, I might want to fetch the initial code or language settings
+      // or notify the user that the room has been joined
+      // socket.emit('joinRoom', roomId) // Rejoin the room if needed
     }
 
     const handleRoomError = (error: string) => {
       console.error('Room error:', error)
+      router.push('/room')
     }
 
     socket.on('connect', handleConnect)
     socket.on('disconnect', handleDisconnect)
     socket.on('codeUpdate', handleCodeUpdate)
+    socket.on('languageUpdate', handleLanguageUpdate)
     socket.on('roomJoined', handleRoomJoined)
     socket.on('roomError', handleRoomError)
 
-    if (isConnected) {
+    const handleReconnect = () => {
+      console.log('Attempting to reconnect...')
       socket.emit('joinRoom', roomId)
+    }
+
+    socket.io.on('reconnect', handleReconnect)
+
+    if (socket.connected) {
+      handleConnect()
     }
 
     return () => {
       socket.off('connect', handleConnect)
       socket.off('disconnect', handleDisconnect)
       socket.off('codeUpdate', handleCodeUpdate)
+      socket.off('languageUpdate', handleLanguageUpdate)
       socket.off('roomJoined', handleRoomJoined)
       socket.off('roomError', handleRoomError)
+      socket.io.off('reconnect', handleReconnect)
     }
-  }, [socket, roomId, isConnected])
+  }, [socket, roomId])
 
   const handleChange = debounce((newValue: string | undefined) => {
     if (newValue === undefined) return
@@ -80,25 +102,37 @@ export default function Room({roomId}:{roomId:string}) {
   const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newLanguage = event.target.value
     setLanguage(newLanguage)
-    // You might want to emit this change to other users
-    // socket.emit('languageChange', { roomId, newLanguage })
+    socket.emit('languageChange', { roomId, newLanguage })
+  }
+
+  const handleCopyRoomId = () => {
+    navigator.clipboard.writeText(roomId)
+  }
+
+  const handleLeaveRoom = () => {
+    // Implement room leaving logic here
+    console.log('Leaving room')
+    // You might want to emit a 'leaveRoom' event to the server
+    // socket.emit('leaveRoom', roomId)
+    // Then redirect the user to the home page or room selection page
+    // window.location.href = '/'
   }
 
   return (
     <div className="h-screen flex flex-col">
-      <header className="bg-primary text-primary-foreground py-4 px-4 flex justify-between items-center">
-        <div className="flex items-center space-x-4">
+      <header className="bg-primary text-primary-foreground py-2 px-4 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
           <h1 className="text-lg font-semibold">Room: {roomId}</h1>
           <span className={`text-xs px-2 py-1 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}>
             {isConnected ? 'Connected' : 'Disconnected'}
           </span>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-wrap items-center space-x-2 sm:space-x-4">
           <div className="relative">
             <select
               value={language}
               onChange={handleLanguageChange}
-              className="appearance-none bg-secondary text-secondary-foreground px-3 py-1 pr-8 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              className="appearance-none bg-secondary text-secondary-foreground px-2 py-1 pr-6 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
             >
               {languages.map((lang) => (
                 <option key={lang.value} value={lang.value}>
@@ -106,21 +140,27 @@ export default function Room({roomId}:{roomId:string}) {
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-secondary-foreground w-4 h-4" />
+            <ChevronDown className="absolute right-1 top-1/2 transform -translate-y-1/2 pointer-events-none text-secondary-foreground w-4 h-4" />
           </div>
           <button
-            onClick={() => navigator.clipboard.writeText(roomId)}
-            className="text-sm bg-secondary text-secondary-foreground px-3 py-1 rounded-md flex items-center hover:bg-secondary/80 transition-colors"
+            onClick={handleCopyRoomId}
+            className="text-sm bg-secondary text-secondary-foreground p-1 rounded-md flex items-center hover:bg-secondary/80 transition-colors"
+            aria-label="Copy Room ID"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-              <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-            </svg>
-            Copy ID
+            <Copy className="w-4 h-4" />
+            <span className="sr-only sm:not-sr-only sm:ml-1">Copy ID</span>
+          </button>
+          <button 
+            onClick={handleLeaveRoom}
+            className="text-sm bg-red-500 text-white p-1 rounded-md flex items-center hover:bg-red-600 transition-colors"
+            aria-label="Leave Room"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="sr-only sm:not-sr-only sm:ml-1">Leave</span>
           </button>
         </div>
       </header>
-      <main className="flex-grow">
+      <main className="flex-grow relative">
         <Editor
           height="100%"
           language={language}
@@ -138,6 +178,7 @@ export default function Room({roomId}:{roomId:string}) {
             lineNumbersMinChars: 2,
             lineDecorationsWidth: 0,
           }}
+          className="w-full h-full"
         />
       </main>
     </div>

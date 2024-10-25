@@ -19,6 +19,7 @@ app.use(cors());
 
 interface Room {
   code: string;
+  language: string;
   users: Set<string>;
 }
 
@@ -29,7 +30,7 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('createRoom', () => {
     const roomId = uuidv4();
-    rooms.set(roomId, { code: "", users: new Set([socket.id]) });
+    rooms.set(roomId, { code: "",language:'', users: new Set([socket.id]) });
     socket.join(roomId);
     socket.emit('roomCreated', roomId);
     console.log(`Room created: ${roomId} by user ${socket.id}`);
@@ -38,16 +39,22 @@ io.on('connection', (socket: Socket) => {
   socket.on('joinRoom', (roomId: string) => {
     console.log(`User ${socket.id} attempting to join room ${roomId}`);
     if (rooms.has(roomId)) {
-      socket.join(roomId);
       const room = rooms.get(roomId)!;
-      room.users.add(socket.id);
-      socket.emit('roomJoined', roomId);
-      socket.emit('codeUpdate', room.code);
-      console.log(`User ${socket.id} joined room: ${roomId}`);
+      if (!room.users.has(socket.id)) {
+        room.users.add(socket.id);
+        socket.join(roomId);
+        socket.emit('roomJoined', roomId);
+        socket.emit('codeUpdate', room.code);
+        socket.emit('languageUpdate', room.language);
+        console.log(`User ${socket.id} joined room: ${roomId}`);
+      } else {
+        console.log(`User ${socket.id} is already in room ${roomId}`);
+      }
     } else {
       socket.emit('roomError', 'Room does not exist');
     }
   });
+  
 
   socket.on('codeChange', ({ roomId, newCode }: { roomId: string; newCode: string }) => {
     console.log(`Code change in room: ${roomId} by user ${socket.id}`);
@@ -62,20 +69,49 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
-  socket.on('disconnecting', () => {
-    console.log(`User ${socket.id} disconnecting`);
-    for (const [roomId, room] of rooms.entries()) {
-      if (room.users.has(socket.id)) {
-        room.users.delete(socket.id);
-        if (room.users.size === 0) {
-          rooms.delete(roomId);
-          console.log(`Room deleted: ${roomId}`);
-        } else {
-          socket.to(roomId).emit('userDisconnected', socket.id);
-        }
+  socket.on('languageChange', ({ roomId, newLanguage }: { roomId: string; newLanguage: string }) => {
+    if (rooms.has(roomId)) {
+      const room = rooms.get(roomId)!;
+      room.language = newLanguage;  // Update the room's language state
+      socket.to(roomId).emit('languageUpdate', newLanguage);
+    } else {
+      socket.emit('roomError', 'Room does not exist');
+    }
+  });
+  
+  socket.on('leaveRoom', ({ roomId }: { roomId: string }) => {
+    if (rooms.has(roomId)) {
+      const room = rooms.get(roomId)!;
+      room.users.delete(socket.id);
+      socket.leave(roomId);
+      socket.to(roomId).emit('userDisconnected', socket.id);
+      if (room.users.size === 0) {
+        rooms.delete(roomId);
+        console.log(`Room ${roomId} has been deleted.`);
       }
     }
   });
+
+  const cleanupRoom = (roomId: string, userId: string) => {
+    const room = rooms.get(roomId);
+    if (!room) return;
+  
+    room.users.delete(userId);
+    if (room.users.size === 0) {
+      rooms.delete(roomId);
+      console.log(`Room ${roomId} deleted as last user disconnected.`);
+    } else {
+      io.to(roomId).emit('userDisconnected', userId);
+    }
+  };
+  
+  socket.on('disconnecting', () => {
+    console.log(`User ${socket.id} disconnecting`);
+    for (const roomId of socket.rooms) {
+      cleanupRoom(roomId, socket.id);
+    }
+  });
+  
 
   socket.on('disconnect', () => {
     console.log('Client disconnected', socket.id);
