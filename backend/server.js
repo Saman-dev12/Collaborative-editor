@@ -20,9 +20,7 @@ const corsOptions = {
 };
 // Apply CORS to Express and Socket.io
 app.use((0, cors_1.default)(corsOptions));
-const io = new socket_io_1.Server(server, {
-    cors: corsOptions
-});
+const io = new socket_io_1.Server(server);
 const rooms = new Map();
 // Handle socket connections
 io.on('connection', (socket) => {

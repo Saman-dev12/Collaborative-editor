@@ -19,9 +19,7 @@ const corsOptions = {
 // Apply CORS to Express and Socket.io
 app.use(cors(corsOptions));
 
-const io = new Server(server, {
-  cors: corsOptions
-});
+const io = new Server(server);
 
 // Define the Room interface
 interface Room {
