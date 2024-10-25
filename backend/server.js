@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
+const cors_1 = __importDefault(require("cors"));
 const uuid_1 = require("uuid");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
@@ -17,6 +18,8 @@ const corsOptions = {
     methods: ['GET', 'POST'],
     credentials: true
 };
+// Apply CORS to Express and Socket.io
+app.use((0, cors_1.default)(corsOptions));
 const io = new socket_io_1.Server(server, {
     cors: corsOptions
 });
