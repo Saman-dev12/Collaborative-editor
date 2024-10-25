@@ -16,8 +16,9 @@ const io = new Server(server, {
 });
 
 app.use(cors({
-  origin: process.env.CORS_URL
-  
+  origin: process.env.CORS_URL,
+  methods: ['GET', 'POST'],
+  credentials: true
 }));
 
 interface Room {
