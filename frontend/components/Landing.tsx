@@ -88,7 +88,7 @@ function Landing() {
                 >
                   <p className="text-gray-600 mb-6 text-lg italic">"{testimonial.quote}"</p>
                   <div className="flex items-center">
-                    <img src={`/placeholder.svg?height=50&width=50`} alt={testimonial.name} className="w-12 h-12 rounded-full mr-4" />
+                    {/* <img src={`/placeholder.svg?height=50&width=50`} alt={testimonial.name} className="w-12 h-12 rounded-full mr-4" /> */}
                     <div>
                       <p className="font-semibold">{testimonial.name}</p>
                       <p className="text-gray-500">{testimonial.role}</p>

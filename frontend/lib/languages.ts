@@ -1,4 +1,10 @@
-export const languages = [
+export type Language = {
+  value: string;
+  label: string;
+  ext: string;
+};
+
+export const languages: Language[] = [
   { value: 'javascript', label: 'JavaScript', ext: '.js' },
   { value: 'typescript', label: 'TypeScript', ext: '.ts' },
   { value: 'python', label: 'Python', ext: '.py' },
@@ -9,4 +15,4 @@ export const languages = [
   { value: 'go', label: 'Go', ext: '.go' },
   { value: 'rust', label: 'Rust', ext: '.rs' },
   { value: 'php', label: 'PHP', ext: '.php' },
-]
+];

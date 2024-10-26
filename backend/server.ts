@@ -8,6 +8,9 @@ dotenv.config();
 
 const app = express();
 const server = createServer(app);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 
 // Update the CORS configuration in `io` and `express`
 const corsOptions = {
@@ -16,14 +19,12 @@ const corsOptions = {
   credentials: true
 };
 
-// Apply CORS to Express and Socket.io
 app.use(cors(corsOptions));
 
 const io = new Server(server, {
   cors: corsOptions
 });
 
-// Define the Room interface
 interface Room {
   code: string;
   language: string;
@@ -32,20 +33,19 @@ interface Room {
 
 const rooms = new Map<string, Room>();
 
-// Handle socket connections
 io.on('connection', (socket: Socket) => {
   console.log('New client connected', socket.id);
 
-  // Event to create a new room
+
   socket.on('createRoom', () => {
     const roomId = uuidv4();
-    rooms.set(roomId, { code: '', language: '', users: new Set([socket.id]) });
+    rooms.set(roomId, { code: '', language: 'javascript', users: new Set([socket.id]) });
     socket.join(roomId);
     socket.emit('roomCreated', roomId);
     console.log(`Room created: ${roomId} by user ${socket.id}`);
   });
 
-  // Event to join an existing room
+
   socket.on('joinRoom', (roomId: string) => {
     console.log(`User ${socket.id} attempting to join room ${roomId}`);
     if (rooms.has(roomId)) {
@@ -65,7 +65,7 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
-  // Event to handle code changes
+
   socket.on('codeChange', ({ roomId, newCode }: { roomId: string; newCode: string }) => {
     console.log(`Code change in room: ${roomId} by user ${socket.id}`);
     if (rooms.has(roomId)) {
@@ -79,7 +79,6 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
-  // Event to handle language changes
   socket.on('languageChange', ({ roomId, newLanguage }: { roomId: string; newLanguage: string }) => {
     if (rooms.has(roomId)) {
       const room = rooms.get(roomId)!;
@@ -90,7 +89,22 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
-  // Event to leave a room
+  socket.on('getRooms', () => {
+    const roomList = Array.from(rooms.keys());
+    socket.emit('roomList', roomList);
+  });
+
+  socket.on('getRoomUsers', (roomId: string) => {
+    if (rooms.has(roomId)) {
+      const room = rooms.get(roomId)!;
+      const usersInRoom = Array.from(room.users);
+      socket.emit('roomUsers', usersInRoom);
+    } else {
+      socket.emit('roomError', 'Room does not exist');
+    }
+  });
+
+
   socket.on('leaveRoom', ({ roomId }: { roomId: string }) => {
     if (rooms.has(roomId)) {
       const room = rooms.get(roomId)!;
@@ -103,7 +117,6 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
-  // Function to clean up a room when a user disconnects
   const cleanupRoom = (roomId: string, userId: string) => {
     const room = rooms.get(roomId);
     if (!room) return;
@@ -117,7 +130,6 @@ io.on('connection', (socket: Socket) => {
     }
   };
 
-  // Event for when a user is disconnecting
   socket.on('disconnecting', () => {
     console.log(`User ${socket.id} disconnecting`);
     for (const roomId of socket.rooms) {
@@ -125,7 +137,6 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
-  // Event for when a user disconnects
   socket.on('disconnect', () => {
     console.log('Client disconnected', socket.id);
   });
@@ -139,6 +150,37 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
   res.json({ ok: 'OK' });
 });
+
+app.post('/execute',async(req,res)=>{
+  const {language, code,ext} = req.body;
+  console.log(language,code);
+  try {
+    const response = await fetch("https://emkc.org/api/v2/piston/execute",{
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        language,
+        version: "*",
+        files: [
+          {
+            content: code
+          }
+        ]
+      })
+    })
+    if(response.ok){
+      const data = await response.json();
+      console.log(data);
+      res.json(data);
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({error: "Internal Server Error"});
+  }
+  
+})
 
 // Start the server
 const PORT = process.env.PORT || 8000;

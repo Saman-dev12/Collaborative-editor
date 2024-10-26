@@ -1,4 +1,4 @@
-import Home from '@/components/Editor'
+
 import Landing from '@/components/Landing'
 import React from 'react'
 

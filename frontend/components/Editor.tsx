@@ -4,19 +4,26 @@ import { useEffect, useState, useRef } from 'react'
 import { Editor } from '@monaco-editor/react'
 import { useSocket } from '@/lib/useSocket'
 import { debounce } from 'lodash'
-import { ChevronDown, Copy, LogOut, MoreVertical, Save } from 'lucide-react'
+import { ChevronDown, Copy, LogOut, MoreVertical, Save, Play } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { languages } from '@/lib/languages'
 import { handleSaveFile } from '@/lib/utils'
+import Terminal from '@/components/Terminal'
 
-export default function Room({ roomId }: { roomId: string }) {
-  const [code, setCode] = useState('')
-  const [isConnected, setIsConnected] = useState(false)
-  const [language, setLanguage] = useState('javascript')
-  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
-  const [filename, setFilename] = useState('')
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+interface RoomProps {
+  roomId: string
+}
+
+export default function Room({ roomId }: RoomProps) {
+  const [code, setCode] = useState<string>('')
+  const [isConnected, setIsConnected] = useState<boolean>(false)
+  const [language, setLanguage] = useState<string>('javascript')
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState<boolean>(false)
+  const [filename, setFilename] = useState<string>('')
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false)
+  const [output, setOutput] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(false)
   const socket = useSocket()
   const router = useRouter()
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -55,12 +62,14 @@ export default function Room({ roomId }: { roomId: string }) {
       router.push('/room')
     }
 
+
     socket.on('connect', handleConnect)
     socket.on('disconnect', handleDisconnect)
     socket.on('codeUpdate', handleCodeUpdate)
     socket.on('languageUpdate', handleLanguageUpdate)
     socket.on('roomJoined', handleRoomJoined)
     socket.on('roomError', handleRoomError)
+
 
     const handleReconnect = () => {
       socket.emit('joinRoom', roomId)
@@ -79,6 +88,7 @@ export default function Room({ roomId }: { roomId: string }) {
       socket.off('languageUpdate', handleLanguageUpdate)
       socket.off('roomJoined', handleRoomJoined)
       socket.off('roomError', handleRoomError)
+  
       socket.io.off('reconnect', handleReconnect)
     }
   }, [socket, roomId, router])
@@ -138,9 +148,37 @@ export default function Room({ roomId }: { roomId: string }) {
     }
   }
 
+  const handleRunCode = async () => {
+    setIsLoading(true)
+    setOutput('')
+    try {
+      console.log({ language, code,})
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SOCKET_URL}/execute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ language, code})
+      })
+      const data = await res.json()
+      console.log(data)
+      if (data.run) {
+        setOutput(data.run.output)
+      } else {
+        setOutput(data.output.stderr || "No output received.")
+      }
+    } catch (error) {
+      console.error("Failed to run code:", error)
+      setOutput("An error occurred while running the code.")
+    }finally{
+      setIsLoading(false)
+    }
+    
+  }
+
   return (
     <div className="h-screen flex flex-col">
-      <header className="bg-blue-600 text-white py-3 px-4 md:px-6">
+      <header className="bg-gradient-to-b from-[#2f2f2e] to-[#1f1f1f] text-white py-3 px-4 md:px-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-3 md:space-y-0">
           <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4 w-full md:w-auto">
             <h1 className="text-lg font-semibold truncate">Room: {roomId}</h1>
@@ -180,6 +218,14 @@ export default function Room({ roomId }: { roomId: string }) {
                 <LogOut className="w-4 h-4 mr-2" />
                 <span className="hidden md:inline">Leave</span>
               </button>
+              <button
+                onClick={handleRunCode}
+                className="flex-grow md:flex-grow-0 text-sm bg-green-500 text-white px-3 py-2 rounded-md flex items-center justify-center hover:bg-green-600 transition-colors"
+                aria-label="Run Code"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                <span className="hidden md:inline">Run</span>
+              </button>
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -207,26 +253,31 @@ export default function Room({ roomId }: { roomId: string }) {
           </div>
         </div>
       </header>
-      <main className="flex-grow relative">
-        <Editor
-          height="100%"
-          language={language}
-          theme="vs-dark"
-          value={code}
-          onChange={handleChange}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 16,
-            wordWrap: 'on',
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            tabSize: 2,
-            lineNumbers: 'on',
-            lineNumbersMinChars: 2,
-            lineDecorationsWidth: 0,
-          }}
-          className="w-full h-full"
-        />
+      <main className="flex-grow relative flex flex-col md:flex-row">
+        <div className="w-full md:w-1/2 h-1/2 md:h-full">
+          <Editor
+            height="100%"
+            language={language}
+            theme="vs-dark"
+            value={code}
+            onChange={handleChange}
+            options={{
+              minimap: { enabled: false },
+              fontSize: 16,
+              wordWrap: 'on',
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              tabSize: 2,
+              lineNumbers: 'on',
+              lineNumbersMinChars: 2,
+              lineDecorationsWidth: 0,
+            }}
+            className="w-full h-full"
+          />
+        </div>
+        <div className="w-full md:w-1/2 h-1/2 md:h-full p-4">
+          <Terminal output={output} isLoading={isLoading} />
+        </div>
       </main>
       {isSaveModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
