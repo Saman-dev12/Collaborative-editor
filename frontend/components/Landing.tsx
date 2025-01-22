@@ -16,7 +16,7 @@ function Landing() {
               <a href="#rooms" className="text-gray-600 hover:text-blue-600 transition duration-300">Rooms</a>
               <a href="#testimonials" className="text-gray-600 hover:text-blue-600 transition duration-300">Testimonials</a>
             </div>
-            <Link href="/login" className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition duration-300 shadow-md">
+            <Link href="/room" className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition duration-300 shadow-md">
               Get Started
             </Link>
           </div>
